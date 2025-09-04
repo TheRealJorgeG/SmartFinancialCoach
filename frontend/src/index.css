@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  .gradient-bg {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  }
+  
+  .glass-effect {
+    backdrop-filter: blur(10px);
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+  
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
+  }
+}
+
+@layer utilities {
+  /* Custom hover effect for Recharts bars */
+  .recharts-bar-rectangle:hover {
+    opacity: 0.8 !important;
+    transition: opacity 0.2s ease-in-out;
+  }
+  
+  /* Remove ALL focus outlines from pie chart and SVG elements */
+  .recharts-pie-sector,
+  .recharts-pie-sector:focus,
+  .recharts-pie-sector:focus-visible,
+  .recharts-pie path,
+  .recharts-pie path:focus,
+  .recharts-pie path:focus-visible,
+  .recharts-pie-sector path,
+  .recharts-pie-sector path:focus,
+  .recharts-pie-sector path:focus-visible,
+  .recharts-pie g,
+  .recharts-pie g:focus,
+  .recharts-pie g:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+  }
+  
+  /* Remove any other focus outlines from chart elements */
+  .recharts-wrapper *,
+  .recharts-wrapper *:focus,
+  .recharts-wrapper *:focus-visible,
+  .recharts-surface,
+  .recharts-surface:focus,
+  .recharts-surface:focus-visible,
+  .recharts-container *,
+  .recharts-container *:focus,
+  .recharts-container *:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+  }
+  
+  /* Target all SVG elements that might get focus */
+  svg:focus,
+  svg:focus-visible,
+  svg *:focus,
+  svg *:focus-visible,
+  svg path:focus,
+  svg path:focus-visible,
+  svg g:focus,
+  svg g:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+  }
+}
