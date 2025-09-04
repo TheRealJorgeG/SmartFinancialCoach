@@ -80,8 +80,8 @@ router.get('/:id', async (req, res) => {
 router.post('/', [
   body('category').trim().isLength({ min: 1 }).withMessage('Category is required'),
   body('allocated').isFloat({ min: 0 }).withMessage('Allocated amount must be a positive number'),
-  body('isEssential').isBoolean().withMessage('isEssential must be a boolean'),
-  body('monthYear').optional().isISO8601().withMessage('Invalid month format (YYYY-MM)')
+  body('is_essential').isBoolean().withMessage('is_essential must be a boolean'),
+  body('month_year').optional().isISO8601().withMessage('Invalid month format (YYYY-MM)')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -89,9 +89,9 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { category, allocated, isEssential, monthYear } = req.body;
+    const { category, allocated, is_essential, month_year } = req.body;
     const userId = req.body.userId || 1;
-    const month = monthYear || new Date().toISOString().slice(0, 7);
+    const month = month_year || new Date().toISOString().slice(0, 7);
     const color = req.body.color || `#${Math.floor(Math.random()*16777215).toString(16)}`;
 
     // Check if budget already exists for this category and month
@@ -112,7 +112,7 @@ router.post('/', [
       db.run(`
         INSERT INTO budgets (user_id, category, allocated, spent, color, is_essential, month_year)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [userId, category, allocated, 0, color, isEssential ? 1 : 0, month], function(err) {
+      `, [userId, category, allocated, 0, color, is_essential ? 1 : 0, month], function(err) {
         if (err) {
           console.error('Error creating budget:', err);
           return res.status(500).json({ error: 'Failed to create budget' });
@@ -124,10 +124,10 @@ router.post('/', [
           allocated,
           spent: 0,
           color,
-          isEssential,
-          monthYear: month,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          is_essential,
+          month_year: month,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
         res.status(201).json(newBudget);
@@ -143,7 +143,7 @@ router.post('/', [
 router.put('/:id', [
   body('category').optional().trim().isLength({ min: 1 }).withMessage('Category cannot be empty'),
   body('allocated').optional().isFloat({ min: 0 }).withMessage('Allocated amount must be a positive number'),
-  body('isEssential').optional().isBoolean().withMessage('isEssential must be a boolean'),
+  body('is_essential').optional().isBoolean().withMessage('is_essential must be a boolean'),
   body('color').optional().isHexColor().withMessage('Invalid color format')
 ], async (req, res) => {
   try {
@@ -181,9 +181,9 @@ router.put('/:id', [
         updateFields.push('allocated = ?');
         updateValues.push(updates.allocated);
       }
-      if (updates.isEssential !== undefined) {
+      if (updates.is_essential !== undefined) {
         updateFields.push('is_essential = ?');
-        updateValues.push(updates.isEssential ? 1 : 0);
+        updateValues.push(updates.is_essential ? 1 : 0);
       }
       if (updates.color !== undefined) {
         updateFields.push('color = ?');

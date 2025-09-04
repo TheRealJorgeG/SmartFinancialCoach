@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   ChartBarIcon,
   CreditCardIcon,
-  Cog6ToothIcon,
   HomeIcon,
   CalculatorIcon
 } from '@heroicons/react/24/outline';
@@ -43,7 +42,6 @@ export const Dashboard: React.FC = () => {
     { id: 'insights', icon: ChartBarIcon, label: 'Spending Insights' },
     { id: 'budget', icon: CalculatorIcon, label: 'Budget Manager' },
     { id: 'subscriptions', icon: CreditCardIcon, label: 'Subscriptions' },
-    { id: 'settings', icon: Cog6ToothIcon, label: 'Settings' },
   ];
 
   const renderContent = () => {
@@ -58,19 +56,8 @@ export const Dashboard: React.FC = () => {
         return <BudgetManager />;
       case 'subscriptions':
         return <SubscriptionDetector />;
-      case 'settings':
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-500">Settings panel coming soon...</p>
-            </CardContent>
-          </Card>
-        );
       default:
-        return <TransactionManager />;
+        return <FinancialOverview />;
     }
   };
 
@@ -102,18 +89,6 @@ export const Dashboard: React.FC = () => {
               />
             ))}
           </nav>
-
-          {/* Bottom Stats */}
-          <div className="mt-8 p-4 bg-gray-800 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-400 text-sm">This Month</span>
-              <span className="text-green-400 text-sm font-medium">+$700</span>
-            </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div className="bg-green-400 h-2 rounded-full w-3/4"></div>
-            </div>
-            <p className="text-gray-400 text-xs mt-2">19.2% savings rate</p>
-          </div>
         </div>
 
         {/* Main Content */}

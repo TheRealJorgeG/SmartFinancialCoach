@@ -175,18 +175,53 @@ const SubscriptionRow: React.FC<SubscriptionRowProps> = ({ subscription, onCance
 };
 
 export const SubscriptionDetector: React.FC = () => {
-  const { subscriptions, loading, error, deleteSubscription, updateSubscriptionStatus, transactions, addSubscription, markNotSubscription } = useFinancialData();
+  const { subscriptions, loading, error, deleteSubscription, updateSubscriptionStatus, transactions, addSubscription } = useFinancialData();
   
   // AI Subscription Detection State
   const [showAiAnalysis, setShowAiAnalysis] = useState(false);
   const [processingSubscriptions, setProcessingSubscriptions] = useState<Set<string>>(new Set());
   const [rejectedVendors, setRejectedVendors] = useState<Set<string>>(new Set());
+  const [permanentlyRemovedVendors, setPermanentlyRemovedVendors] = useState<Set<string>>(new Set());
 
   const handleCancel = async (id: number) => {
     try {
+      // Find the subscription being cancelled to get vendor info
+      const subscription = subscriptions.find(sub => sub.id === id);
+      
       await deleteSubscription(id);
+      
+      // Remove from rejected vendors so it can be re-detected by AI
+      if (subscription) {
+        setRejectedVendors(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(subscription.name); // Using name as vendor identifier
+          return newSet;
+        });
+      }
+      
+      console.log('Subscription cancelled and can now be re-detected by AI');
     } catch (error) {
       console.error('Error canceling subscription:', error);
+    }
+  };
+
+  // Handle permanently removing a vendor from AI detection
+  const handlePermanentlyRemoveFromAI = async (detectedSub: any) => {
+    try {
+      setProcessingSubscriptions(prev => new Set(prev).add(detectedSub.id));
+      
+      // Add to permanently removed vendors
+      setPermanentlyRemovedVendors(prev => new Set(prev).add(detectedSub.vendor));
+      
+      console.log(`${detectedSub.vendor} permanently removed from AI detection`);
+    } catch (error) {
+      console.error('Error removing from AI detection:', error);
+    } finally {
+      setProcessingSubscriptions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(detectedSub.id);
+        return newSet;
+      });
     }
   };
 
@@ -201,23 +236,42 @@ export const SubscriptionDetector: React.FC = () => {
   // Handle confirming AI-detected subscription
   const handleConfirmSubscription = async (detectedSub: any) => {
     try {
+      console.log('Confirming subscription:', detectedSub);
       setProcessingSubscriptions(prev => new Set(prev).add(detectedSub.id));
       
+      // Normalize frequency to only valid values (monthly or yearly)
+      let normalizedFrequency: 'monthly' | 'yearly' = 'monthly';
+      if (detectedSub.frequency === 'yearly') {
+        normalizedFrequency = 'yearly';
+      }
+      
+      // Ensure we have a valid date
+      const nextBillingDate = detectedSub.nextBilling instanceof Date 
+        ? detectedSub.nextBilling 
+        : new Date(detectedSub.nextBilling);
+      
       const newSubscription = {
-        name: detectedSub.name,
-        amount: detectedSub.amount,
-        frequency: (detectedSub.frequency === 'yearly' ? 'yearly' : 'monthly') as 'monthly' | 'yearly',
-        next_billing: detectedSub.nextBilling.toISOString(),
-        category: detectedSub.category,
+        name: detectedSub.name || 'Unknown Service',
+        amount: Number(detectedSub.amount) || 0,
+        frequency: normalizedFrequency,
+        next_billing: nextBillingDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        category: detectedSub.category || 'Other',
         status: 'active' as const
       };
       
-      await addSubscription(newSubscription);
+      console.log('New subscription data:', newSubscription);
       
-      // Mark as processed to remove from detection
-      await markNotSubscription(detectedSub.vendor);
+      const result = await addSubscription(newSubscription);
+      console.log('Subscription added successfully:', result);
+      
+      // Temporarily remove from potential subscriptions by adding to rejected vendors set
+      // This will hide it from the AI detection list but allow re-detection if cancelled
+      setRejectedVendors(prev => new Set(prev).add(detectedSub.vendor));
+      
+      console.log('Subscription confirmation completed successfully');
     } catch (error) {
       console.error('Error confirming subscription:', error);
+      alert('Failed to confirm subscription. Please check the console for details.');
     } finally {
       setProcessingSubscriptions(prev => {
         const newSet = new Set(prev);
@@ -227,23 +281,6 @@ export const SubscriptionDetector: React.FC = () => {
     }
   };
 
-  // Handle rejecting AI-detected subscription
-  const handleRejectSubscription = async (detectedSub: any) => {
-    try {
-      setProcessingSubscriptions(prev => new Set(prev).add(detectedSub.id));
-      await markNotSubscription(detectedSub.vendor);
-      // Add to local rejected vendors set
-      setRejectedVendors(prev => new Set(prev).add(detectedSub.vendor));
-    } catch (error) {
-      console.error('Error rejecting subscription:', error);
-    } finally {
-      setProcessingSubscriptions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(detectedSub.id);
-        return newSet;
-      });
-    }
-  };
 
   // AI Subscription Detection
   const detectPotentialSubscriptions = useMemo(() => {
@@ -256,8 +293,8 @@ export const SubscriptionDetector: React.FC = () => {
     transactions.forEach(transaction => {
       if (transaction.amount < 0) { // Only expenses
         const vendor = transaction.vendor;
-        // Skip if vendor has been rejected
-        if (rejectedVendors.has(vendor)) return;
+        // Skip if vendor has been rejected or permanently removed
+        if (rejectedVendors.has(vendor) || permanentlyRemovedVendors.has(vendor)) return;
         
         if (!vendorMap.has(vendor)) {
           vendorMap.set(vendor, {
@@ -345,34 +382,39 @@ export const SubscriptionDetector: React.FC = () => {
     });
     
     return potentialSubs.sort((a, b) => b.confidence - a.confidence);
-  }, [transactions, rejectedVendors]);
+  }, [transactions, rejectedVendors, permanentlyRemovedVendors]);
 
-  // Generate AI Insights for Subscriptions
+  // Generate AI Insights for Confirmed Subscriptions
   const generateSubscriptionInsights = useMemo(() => {
     const insights: any[] = [];
     
-    if (detectPotentialSubscriptions.length === 0 && subscriptions.length === 0) {
+    if (subscriptions.length === 0) {
       insights.push({
         id: 'no_subscriptions',
         type: 'info',
-        title: 'No Subscriptions Detected',
-        message: 'Great job! You currently have no recurring subscriptions, which helps keep your monthly expenses low.',
+        title: 'No Active Subscriptions',
+        message: 'Great job! You currently have no active subscriptions, which helps keep your monthly expenses low.',
         icon: CheckCircleIcon,
         color: 'text-green-600'
       });
       return insights;
     }
     
-    // Analyze detected subscriptions
-    if (detectPotentialSubscriptions.length > 0) {
-      const totalMonthlyCost = detectPotentialSubscriptions.reduce((sum, sub) => sum + sub.monthlyCost, 0);
+    // Analyze confirmed subscriptions
+    const activeSubs = subscriptions.filter(sub => sub.status === 'active');
+    const forgottenSubs = subscriptions.filter(sub => sub.status === 'forgotten');
+    
+    if (activeSubs.length > 0) {
+      const totalMonthlyCost = activeSubs.reduce((sum, sub) => {
+        return sum + (sub.frequency === 'monthly' ? sub.amount : sub.amount / 12);
+      }, 0);
       
       if (totalMonthlyCost > 100) {
         insights.push({
           id: 'high_monthly_cost',
           type: 'warning',
           title: 'High Monthly Subscription Cost',
-          message: `Your detected subscriptions total $${totalMonthlyCost.toFixed(2)} monthly. Consider reviewing which ones you actually use.`,
+          message: `Your active subscriptions total $${totalMonthlyCost.toFixed(2)} monthly. Consider reviewing which ones you actually use.`,
           icon: ExclamationTriangleIcon,
           color: 'text-orange-600',
           recommendation: 'Review and cancel unused subscriptions to save money.'
@@ -380,64 +422,38 @@ export const SubscriptionDetector: React.FC = () => {
       }
       
       // Find most expensive subscription
-      const mostExpensive = detectPotentialSubscriptions.reduce((max, sub) => 
-        sub.monthlyCost > max.monthlyCost ? sub : max
-      );
+      const mostExpensive = activeSubs.reduce((max, sub) => {
+        const monthlyCost = sub.frequency === 'monthly' ? sub.amount : sub.amount / 12;
+        const maxMonthlyCost = max.frequency === 'monthly' ? max.amount : max.amount / 12;
+        return monthlyCost > maxMonthlyCost ? sub : max;
+      });
       
-      if (mostExpensive.monthlyCost > 50) {
+      const expensiveMonthlyCost = mostExpensive.frequency === 'monthly' ? mostExpensive.amount : mostExpensive.amount / 12;
+      if (expensiveMonthlyCost > 50) {
         insights.push({
           id: 'expensive_subscription',
           type: 'warning',
           title: 'Expensive Subscription Detected',
-          message: `${mostExpensive.name} costs $${mostExpensive.monthlyCost.toFixed(2)} monthly. Verify this is providing value.`,
+          message: `${mostExpensive.name} costs $${expensiveMonthlyCost.toFixed(2)} monthly. Verify this is providing value.`,
           icon: ExclamationTriangleIcon,
           color: 'text-red-600',
           recommendation: 'Evaluate if this service is worth the cost.'
         });
       }
       
-      // Find irregular patterns
-      const irregularSubs = detectPotentialSubscriptions.filter(sub => sub.pattern.regularity === 'medium');
-      if (irregularSubs.length > 0) {
-        insights.push({
-          id: 'irregular_patterns',
-          type: 'info',
-          title: 'Irregular Billing Patterns',
-          message: `${irregularSubs.length} subscription(s) have irregular billing patterns. This might indicate usage-based billing.`,
-          icon: ClockIcon,
-          color: 'text-blue-600',
-          recommendation: 'Monitor these for unexpected charges.'
-        });
-      }
-    }
-    
-    // Analyze existing subscriptions
-    if (subscriptions.length > 0) {
-      const activeSubs = subscriptions.filter(sub => sub.status === 'active');
-      const forgottenSubs = subscriptions.filter(sub => sub.status === 'forgotten');
+      // Check for multiple subscriptions in similar categories
+      const categoryCount = activeSubs.reduce((acc, sub) => {
+        acc[sub.category] = (acc[sub.category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
       
-      if (forgottenSubs.length > 0) {
-        const potentialSavings = forgottenSubs.reduce((sum, sub) => 
-          sum + (sub.frequency === 'monthly' ? sub.amount * 12 : sub.amount), 0
-        );
-        
+      const duplicateCategories = Object.entries(categoryCount).filter(([_, count]) => count > 1);
+      if (duplicateCategories.length > 0) {
         insights.push({
-          id: 'forgotten_savings',
-          type: 'opportunity',
-          title: 'Potential Savings Opportunity',
-          message: `You could save $${potentialSavings.toFixed(2)} annually by canceling unused subscriptions.`,
-          icon: LightBulbIcon,
-          color: 'text-green-600',
-          recommendation: 'Review and cancel forgotten subscriptions.'
-        });
-      }
-      
-      if (activeSubs.length > 5) {
-        insights.push({
-          id: 'many_subscriptions',
+          id: 'duplicate_categories',
           type: 'info',
-          title: 'Multiple Active Subscriptions',
-          message: `You have ${activeSubs.length} active subscriptions. Consider consolidating similar services.`,
+          title: 'Multiple Subscriptions in Same Category',
+          message: `You have multiple subscriptions in: ${duplicateCategories.map(([cat]) => cat).join(', ')}. Consider consolidating.`,
           icon: ChartBarIcon,
           color: 'text-blue-600',
           recommendation: 'Look for overlapping services you can eliminate.'
@@ -445,8 +461,38 @@ export const SubscriptionDetector: React.FC = () => {
       }
     }
     
+    // Analyze forgotten/unused subscriptions
+    if (forgottenSubs.length > 0) {
+      const potentialSavings = forgottenSubs.reduce((sum, sub) => 
+        sum + (sub.frequency === 'monthly' ? sub.amount * 12 : sub.amount), 0
+      );
+      
+      insights.push({
+        id: 'forgotten_savings',
+        type: 'opportunity',
+        title: 'Potential Savings Opportunity',
+        message: `You could save $${potentialSavings.toFixed(2)} annually by canceling ${forgottenSubs.length} unused subscription${forgottenSubs.length > 1 ? 's' : ''}.`,
+        icon: LightBulbIcon,
+        color: 'text-green-600',
+        recommendation: 'Review and cancel forgotten subscriptions.'
+      });
+    }
+    
+    // Check for too many active subscriptions
+    if (activeSubs.length > 5) {
+      insights.push({
+        id: 'many_subscriptions',
+        type: 'info',
+        title: 'Multiple Active Subscriptions',
+        message: `You have ${activeSubs.length} active subscriptions. Consider consolidating similar services.`,
+        icon: ChartBarIcon,
+        color: 'text-blue-600',
+        recommendation: 'Look for overlapping services you can eliminate.'
+      });
+    }
+    
     return insights;
-  }, [detectPotentialSubscriptions, subscriptions]);
+  }, [subscriptions]);
 
   if (loading) {
     return (
@@ -472,6 +518,10 @@ export const SubscriptionDetector: React.FC = () => {
 
   const totalMonthlySpend = subscriptions.reduce((total: number, sub: any) => {
     return total + (sub.frequency === 'monthly' ? sub.amount : sub.amount / 12);
+  }, 0);
+
+  const totalYearlySpend = subscriptions.reduce((total: number, sub: any) => {
+    return total + (sub.frequency === 'monthly' ? sub.amount * 12 : sub.amount);
   }, 0);
 
   const forgottenSubscriptions = subscriptions.filter((sub: any) => sub.status === 'forgotten');
@@ -507,14 +557,14 @@ export const SubscriptionDetector: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Potential Savings</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {formatCurrency(potentialSavings)}
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Yearly Cost</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {formatCurrency(totalYearlySpend)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">per year</p>
+                <p className="text-xs text-gray-500 mt-1">all subscriptions</p>
               </div>
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-                <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+              <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
+                <ChartBarIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
@@ -576,38 +626,6 @@ export const SubscriptionDetector: React.FC = () => {
         <CardContent>
           {showAiAnalysis && (
             <div className="space-y-6">
-              {/* AI Insights */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Insights</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {generateSubscriptionInsights.map((insight) => {
-                    const IconComponent = insight.icon;
-                    return (
-                      <div
-                        key={insight.id}
-                        className={`p-4 rounded-lg border-l-4 border-l-${insight.color.split('-')[1]}-500 bg-${insight.color.split('-')[1]}-50 dark:bg-${insight.color.split('-')[1]}-900/10`}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <IconComponent className={`w-5 h-5 ${insight.color} mt-0.5`} />
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900 dark:text-white mb-1">
-                              {insight.title}
-                            </h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                              {insight.message}
-                            </p>
-                            {insight.recommendation && (
-                              <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                💡 {insight.recommendation}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-      </div>
 
               {/* Detected Subscriptions */}
               {detectPotentialSubscriptions.length > 0 && (
@@ -683,14 +701,15 @@ export const SubscriptionDetector: React.FC = () => {
                                   <span>{processingSubscriptions.has(sub.id) ? 'Confirming...' : 'Confirm'}</span>
                                 </Button>
                                 <Button
-                                  variant="danger"
+                                  variant="ghost"
                                   size="sm"
-                                  onClick={() => handleRejectSubscription(sub)}
+                                  onClick={() => handlePermanentlyRemoveFromAI(sub)}
                                   disabled={processingSubscriptions.has(sub.id)}
-                                  className="flex items-center space-x-1"
+                                  className="flex items-center space-x-1 text-gray-500 hover:text-red-500"
+                                  title="Remove from AI detection permanently"
                                 >
                                   <XMarkIcon className="w-3 h-3" />
-                                  <span>{processingSubscriptions.has(sub.id) ? 'Rejecting...' : 'Reject'}</span>
+                                  <span>Remove</span>
                                 </Button>
                               </div>
                             </td>
@@ -731,7 +750,7 @@ export const SubscriptionDetector: React.FC = () => {
                 </p>
               </div>
               <p className="text-red-700 dark:text-red-300 text-sm mt-1">
-                You could save {formatCurrency(potentialSavings)} per year by canceling these subscriptions.
+                Canceling unused subscriptions could save you {formatCurrency(potentialSavings)} annually.
               </p>
             </div>
           )}
@@ -758,6 +777,44 @@ export const SubscriptionDetector: React.FC = () => {
           <CardTitle>All Subscriptions</CardTitle>
         </CardHeader>
         <CardContent>
+          {/* AI Insights Section */}
+          <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/10 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center space-x-2 mb-4">
+              <SparklesIcon className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Insights</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {generateSubscriptionInsights.map((insight) => {
+                const IconComponent = insight.icon;
+                return (
+                  <div
+                    key={insight.id}
+                    className={`p-3 rounded-lg border-l-4 border-l-${insight.color.split('-')[1]}-500 bg-${insight.color.split('-')[1]}-50 dark:bg-${insight.color.split('-')[1]}-900/10`}
+                  >
+                    <div className="flex items-start space-x-3">
+                      <IconComponent className={`w-4 h-4 ${insight.color} mt-0.5`} />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900 dark:text-white mb-1 text-sm">
+                          {insight.title}
+                        </h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                          {insight.message}
+                        </p>
+                        {insight.recommendation && (
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                            💡 {insight.recommendation}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Subscriptions Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

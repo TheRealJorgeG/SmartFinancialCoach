@@ -60,6 +60,13 @@ export const TransactionManager: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate that the date is not in the future
+    const today = new Date().toISOString().split('T')[0];
+    if (formData.date > today) {
+      alert('Cannot add transactions for future dates. Please select today or a past date.');
+      return;
+    }
+    
     try {
       if (editingTransaction) {
         await updateTransaction(editingTransaction.id, {
@@ -167,7 +174,7 @@ export const TransactionManager: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-green-600">Total Income</CardTitle>
+            <CardTitle className="text-green-600">All Time Income</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
@@ -178,7 +185,7 @@ export const TransactionManager: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600">Total Expenses</CardTitle>
+            <CardTitle className="text-red-600">All Time Expenses</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-red-600">
@@ -189,7 +196,7 @@ export const TransactionManager: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Net Savings</CardTitle>
+            <CardTitle>All Time Net Savings</CardTitle>
           </CardHeader>
           <CardContent>
             <p className={`text-2xl font-bold ${transactions.reduce((sum, t) => sum + t.amount, 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -356,9 +363,11 @@ export const TransactionManager: React.FC = () => {
                   type="date"
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  max={new Date().toISOString().split('T')[0]}
                   className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">Cannot select future dates</p>
               </div>
               
               <div>

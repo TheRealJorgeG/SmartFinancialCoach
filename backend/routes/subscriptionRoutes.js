@@ -93,7 +93,7 @@ router.post('/', [
   body('name').trim().isLength({ min: 1 }).withMessage('Name is required'),
   body('amount').isFloat({ min: 0 }).withMessage('Amount must be a non-negative number'),
   body('frequency').isIn(['monthly', 'yearly']).withMessage('Frequency must be monthly or yearly'),
-  body('nextBilling').isISO8601().withMessage('Valid next billing date is required'),
+  body('next_billing').isISO8601().withMessage('Valid next billing date is required'),
   body('category').trim().isLength({ min: 1 }).withMessage('Category is required'),
   body('status').optional().isIn(['active', 'trial', 'forgotten']).withMessage('Invalid status'),
   body('logo').optional().trim()
@@ -104,14 +104,14 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, amount, frequency, nextBilling, category, status = 'active', logo } = req.body;
+    const { name, amount, frequency, next_billing, category, status = 'active', logo } = req.body;
     const userId = req.body.userId || 1;
 
     // Create subscription
     db.run(`
       INSERT INTO subscriptions (user_id, name, amount, frequency, next_billing, category, status, logo)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [userId, name, amount, frequency, nextBilling, category, status, logo || null], function(err) {
+    `, [userId, name, amount, frequency, next_billing, category, status, logo || null], function(err) {
       if (err) {
         console.error('Error creating subscription:', err);
         return res.status(500).json({ error: 'Failed to create subscription' });
@@ -122,12 +122,12 @@ router.post('/', [
         name,
         amount,
         frequency,
-        nextBilling,
+        next_billing,
         category,
         status,
         logo: logo || null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       res.status(201).json(newSubscription);
@@ -143,7 +143,7 @@ router.put('/:id', [
   body('name').optional().trim().isLength({ min: 1 }).withMessage('Name cannot be empty'),
   body('amount').optional().isFloat({ min: 0 }).withMessage('Amount must be a non-negative number'),
   body('frequency').optional().isIn(['monthly', 'yearly']).withMessage('Frequency must be monthly or yearly'),
-  body('nextBilling').optional().isISO8601().withMessage('Valid next billing date is required'),
+  body('next_billing').optional().isISO8601().withMessage('Valid next billing date is required'),
   body('category').optional().trim().isLength({ min: 1 }).withMessage('Category cannot be empty'),
   body('status').optional().isIn(['active', 'trial', 'forgotten']).withMessage('Invalid status'),
   body('logo').optional().trim()
@@ -187,9 +187,9 @@ router.put('/:id', [
         updateFields.push('frequency = ?');
         updateValues.push(updates.frequency);
       }
-      if (updates.nextBilling !== undefined) {
+      if (updates.next_billing !== undefined) {
         updateFields.push('next_billing = ?');
-        updateValues.push(updates.nextBilling);
+        updateValues.push(updates.next_billing);
       }
       if (updates.category !== undefined) {
         updateFields.push('category = ?');

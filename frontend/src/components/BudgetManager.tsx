@@ -23,6 +23,13 @@ export const BudgetManager: React.FC = () => {
   const { 
     budgets, 
     totalIncome, 
+    monthlyIncome,
+    monthlyExpenses,
+    monthlyNetSavings,
+    monthlySavingsRate,
+    monthlyBudgetSpending,
+    currentMonth,
+    transactions,
     addBudget, 
     updateBudget, 
     deleteBudget,
@@ -38,14 +45,36 @@ export const BudgetManager: React.FC = () => {
     isEssential: false
   });
 
-  // Use real income from transactions
-  const monthlyIncome = totalIncome;
+  // Use actual monthly income and expenses for current month
+  const currentMonthFormatted = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long' 
+  });
+
+  // Get unique categories from transactions (excluding income transactions)
+  const availableCategories = React.useMemo(() => {
+    const expenseTransactions = transactions.filter(t => t.type === 'expense');
+    const categoriesSet = new Set(expenseTransactions.map(t => t.category));
+    const categories = Array.from(categoriesSet);
+    
+    // Filter out categories that already have budgets for current month
+    // BUT include the current editing budget's category if we're editing
+    const existingBudgetCategories = budgets.map(b => b.category);
+    const availableCategories = categories.filter(cat => {
+      if (editingBudget && cat === editingBudget.category) {
+        return true; // Include current editing category
+      }
+      return !existingBudgetCategories.includes(cat);
+    });
+    
+    return availableCategories.sort();
+  }, [transactions, budgets, editingBudget]);
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
 
-  const getBudgetStatus = (budget: Budget) => {
-    const percentage = (budget.spent / budget.allocated) * 100;
+  const getBudgetStatus = (budget: Budget, actualSpent: number) => {
+    const percentage = (actualSpent / budget.allocated) * 100;
     
     if (percentage > 100) return { status: 'over', color: 'text-red-600', bgColor: 'bg-red-100' };
     if (percentage > 80) return { status: 'warning', color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
@@ -53,9 +82,9 @@ export const BudgetManager: React.FC = () => {
   };
 
   const totalAllocated = budgets.reduce((sum, budget) => sum + budget.allocated, 0);
-  const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
-  const freeSpending = monthlyIncome - totalAllocated;
-  const actualFreeSpending = monthlyIncome - totalSpent;
+  const totalActualSpent = monthlyBudgetSpending.reduce((sum, budget) => sum + budget.actualSpent, 0);
+  const plannedFreeSpending = monthlyIncome - totalAllocated;
+  const actualFreeSpending = monthlyIncome - totalActualSpent;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,18 +133,18 @@ export const BudgetManager: React.FC = () => {
     }
   };
 
-  const budgetChartData = budgets.map(budget => ({
+  const budgetChartData = monthlyBudgetSpending.map(budget => ({
     name: budget.category,
     allocated: budget.allocated,
-    spent: budget.spent,
-    remaining: Math.max(0, budget.allocated - budget.spent),
+    spent: budget.actualSpent,
+    remaining: Math.max(0, budget.allocated - budget.actualSpent),
     color: budget.color
   }));
 
   const summaryData = [
     { name: 'Allocated', value: totalAllocated, color: '#3B82F6' },
-    { name: 'Free Budget', value: Math.max(0, freeSpending), color: '#10B981' },
-    ...(freeSpending < 0 ? [{ name: 'Over Budget', value: Math.abs(freeSpending), color: '#EF4444' }] : [])
+    { name: 'Free Budget', value: Math.max(0, plannedFreeSpending), color: '#10B981' },
+    ...(plannedFreeSpending < 0 ? [{ name: 'Over Budget', value: Math.abs(plannedFreeSpending), color: '#EF4444' }] : [])
   ];
 
   if (loading) {
@@ -149,7 +178,10 @@ export const BudgetManager: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <CurrencyDollarIcon className="w-5 h-5 text-green-500" />
-              <span>Monthly Overview</span>
+              <div className="flex flex-col">
+                <span>{currentMonthFormatted} Budget</span>
+                <span className="text-sm font-normal text-gray-500">Current Month Overview</span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -159,24 +191,34 @@ export const BudgetManager: React.FC = () => {
                 <span className="font-semibold text-green-600">{formatCurrency(monthlyIncome)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total Allocated</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Total Budgeted</span>
                 <span className="font-semibold">{formatCurrency(totalAllocated)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Total Spent</span>
-                <span className="font-semibold">{formatCurrency(totalSpent)}</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Budget Spent</span>
+                <span className="font-semibold text-orange-600">{formatCurrency(totalActualSpent)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Other Expenses</span>
+                <span className="font-semibold text-red-500">{formatCurrency(Math.max(0, monthlyExpenses - totalActualSpent))}</span>
               </div>
               <hr className="border-gray-200 dark:border-gray-700" />
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Planned Free Spending</span>
-                <span className={`font-bold ${freeSpending >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(freeSpending)}
+                <span className="text-sm font-medium">Planned Free Money</span>
+                <span className={`font-bold ${plannedFreeSpending >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(plannedFreeSpending)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Actual Free Spending</span>
+                <span className="text-sm font-medium">Remaining Budget Money</span>
                 <span className={`font-bold ${actualFreeSpending >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(actualFreeSpending)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center border-t pt-2">
+                <span className="text-sm font-medium">Monthly Savings</span>
+                <span className={`font-bold ${monthlyNetSavings >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(monthlyNetSavings)} ({monthlySavingsRate.toFixed(1)}%)
                 </span>
               </div>
             </div>
@@ -245,19 +287,19 @@ export const BudgetManager: React.FC = () => {
               </Button>
               
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                <p className="mb-2">Budget Health:</p>
+                <p className="mb-2">This Month's Budget Health:</p>
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
                     <CheckCircleIcon className="w-4 h-4 text-green-500" />
-                    <span>{budgets.filter(b => getBudgetStatus(b).status === 'good').length} on track</span>
+                    <span>{monthlyBudgetSpending.filter(b => getBudgetStatus(b, b.actualSpent).status === 'good').length} on track</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <ExclamationTriangleIcon className="w-4 h-4 text-yellow-500" />
-                    <span>{budgets.filter(b => getBudgetStatus(b).status === 'warning').length} at risk</span>
+                    <span>{monthlyBudgetSpending.filter(b => getBudgetStatus(b, b.actualSpent).status === 'warning').length} at risk</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
-                    <span>{budgets.filter(b => getBudgetStatus(b).status === 'over').length} over budget</span>
+                    <span>{monthlyBudgetSpending.filter(b => getBudgetStatus(b, b.actualSpent).status === 'over').length} over budget</span>
                   </div>
                 </div>
               </div>
@@ -269,7 +311,7 @@ export const BudgetManager: React.FC = () => {
       {/* Budget vs Spending Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Budget vs Actual Spending</CardTitle>
+          <CardTitle>{currentMonthFormatted} - Budget vs Actual Spending</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -307,14 +349,14 @@ export const BudgetManager: React.FC = () => {
       {/* Budget List */}
       <Card>
         <CardHeader>
-          <CardTitle>Budget Details</CardTitle>
+          <CardTitle>{currentMonthFormatted} Budget Details</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {budgets.map((budget) => {
-              const status = getBudgetStatus(budget);
-              const remaining = budget.allocated - budget.spent;
-              const percentage = (budget.spent / budget.allocated) * 100;
+            {monthlyBudgetSpending.map((budget) => {
+              const status = getBudgetStatus(budget, budget.actualSpent);
+              const remaining = budget.allocated - budget.actualSpent;
+              const percentage = (budget.actualSpent / budget.allocated) * 100;
               
               return (
                 <div key={budget.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
@@ -349,8 +391,8 @@ export const BudgetManager: React.FC = () => {
                   
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>Spent: {formatCurrency(budget.spent)}</span>
-                      <span>Budget: {formatCurrency(budget.allocated)}</span>
+                      <span>Spent This Month: {formatCurrency(budget.actualSpent)}</span>
+                      <span>Monthly Budget: {formatCurrency(budget.allocated)}</span>
                     </div>
                     
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -389,13 +431,24 @@ export const BudgetManager: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Category</label>
-                <input
-                  type="text"
+                <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700"
                   required
-                />
+                >
+                  <option value="">Select a category...</option>
+                  {availableCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+                {availableCategories.length === 0 && !editingBudget && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    All transaction categories already have budgets. Add more transactions to see more categories.
+                  </p>
+                )}
               </div>
               
               <div>

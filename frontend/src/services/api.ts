@@ -107,7 +107,18 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
-    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    let errorMessage = `API call failed: ${response.status} ${response.statusText}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.errors) {
+        errorMessage += ` - ${JSON.stringify(errorData.errors)}`;
+      } else if (errorData.error) {
+        errorMessage += ` - ${errorData.error}`;
+      }
+    } catch (e) {
+      // Failed to parse error response
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();

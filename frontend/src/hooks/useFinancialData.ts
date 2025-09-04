@@ -256,7 +256,10 @@ export const useFinancialData = () => {
     }
   }, [updateSubscriptionStatus]);
 
-  // Computed values
+  // Helper function to get current month in YYYY-MM format
+  const getCurrentMonth = () => new Date().toISOString().slice(0, 7);
+
+  // Computed values - All time totals
   const totalIncome = state.transactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
@@ -265,8 +268,37 @@ export const useFinancialData = () => {
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
+  // Monthly specific calculations for current month
+  const currentMonth = getCurrentMonth();
+  const monthlyIncome = state.transactions
+    .filter(t => t.type === 'income' && t.date.slice(0, 7) === currentMonth)
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const monthlyExpenses = state.transactions
+    .filter(t => t.type === 'expense' && t.date.slice(0, 7) === currentMonth)
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  // Calculate actual spending per budget category for current month
+  const monthlyBudgetSpending = state.budgets.map(budget => {
+    const categorySpending = state.transactions
+      .filter(t => 
+        t.type === 'expense' && 
+        t.category === budget.category && 
+        t.date.slice(0, 7) === currentMonth
+      )
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+    return {
+      ...budget,
+      actualSpent: categorySpending
+    };
+  });
+
   const netSavings = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? (netSavings / totalIncome) * 100 : 0;
+  
+  const monthlyNetSavings = monthlyIncome - monthlyExpenses;
+  const monthlySavingsRate = monthlyIncome > 0 ? (monthlyNetSavings / monthlyIncome) * 100 : 0;
 
   return {
     ...state,
@@ -274,6 +306,13 @@ export const useFinancialData = () => {
     totalExpenses,
     netSavings,
     savingsRate,
+    // Monthly specific values
+    monthlyIncome,
+    monthlyExpenses,
+    monthlyNetSavings,
+    monthlySavingsRate,
+    monthlyBudgetSpending,
+    currentMonth,
     addTransaction,
     updateTransaction,
     deleteTransaction,
