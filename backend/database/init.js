@@ -1,7 +1,20 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'financial_coach.db');
+const seedDbPath = path.join(__dirname, 'financial_coach.seed.db');
+
+// If no working DB exists but a seed DB is present, copy the seed so each clone
+// gets an independent local database initialized with the same data.
+try {
+  if (!fs.existsSync(dbPath) && fs.existsSync(seedDbPath)) {
+    fs.copyFileSync(seedDbPath, dbPath);
+    console.log('Seed database copied to working database.');
+  }
+} catch (copyError) {
+  console.error('Error copying seed database:', copyError);
+}
 
 // Create database connection
 const db = new sqlite3.Database(dbPath, (err) => {
