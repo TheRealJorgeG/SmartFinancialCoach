@@ -15,7 +15,7 @@ A comprehensive AI-powered financial management application that helps users tra
 
 1. **Clone the repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/TheRealJorgeG/SmartFinancialCoach.git
    cd smart-financial-coach
    ```
 
