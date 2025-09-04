@@ -1,266 +1,294 @@
-# Smart Financial Coach Backend API
+# Smart Financial Coach
 
-A comprehensive backend API for the Smart Financial Coach application, providing financial management, budgeting, goal tracking, and AI-powered insights.
+A comprehensive AI-powered financial management application that helps users track expenses, manage budgets, detect subscriptions, and gain intelligent insights into their spending patterns.
 
-## Features
+## Video Link: https://youtu.be/jVfKOJgp_8U 
 
-- **Budget Management**: Create, update, and track monthly budgets with spending analysis
-- **Transaction Tracking**: Log income and expenses with category classification
-
-- **Subscription Management**: Monitor active, trial, and forgotten subscriptions
-- **AI-Powered Insights**: Get personalized financial recommendations and spending analysis
-- **User Authentication**: Secure user registration and login with JWT tokens
-- **Comprehensive Analytics**: Financial overview, trends, and savings opportunities
-
-## Tech Stack
-
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: SQLite3
-- **Authentication**: JWT + bcrypt
-- **Validation**: express-validator
-- **Security**: Helmet, CORS
-
-## Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
+- **Node.js** (v16 or higher)
+- **npm** 
+- **Git**
 
-- Node.js (v16 or higher)
-- npm or yarn
+### Installation & Setup
 
-### Installation
-
-1. **Install dependencies**:
+1. **Clone the repository**:
    ```bash
-   npm install
+   git clone <repository-url>
+   cd smart-financial-coach
    ```
 
-2. **Start the development server**:
+2. **Install all dependencies**:
+   ```bash
+   npm run install:all
+   ```
+   This command installs dependencies for the root, backend, and frontend simultaneously.
+
+3. **Start the application**:
    ```bash
    npm run dev
    ```
+   This starts both the backend server (port 5000) and frontend development server (port 3000) concurrently.
 
-3. **Start the production server**:
-   ```bash
-   npm start
-   ```
+4. **Access the application**:
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:5000
 
-The server will start on port 5000 by default. You can change this by setting the `PORT` environment variable.
 
-## API Endpoints
+## 🚀 Features
 
-### Health Check
-- `GET /health` - Server health status
+### Core Financial Management
+- **💰 Budget Management**: Create, update, and track monthly budgets with real-time spending analysis
+- **📊 Transaction Tracking**: Log income and expenses with automatic category classification
+- **🔍 Subscription Detection**: AI-powered detection of recurring subscriptions with confirmation/rejection functionality
+- **📈 Spending Insights**: Advanced analytics with personalized recommendations and trends
+- **💡 Financial Overview**: Comprehensive dashboard with income, expenses, and savings tracking
+
+### AI-Powered Features
+- **Smart Spending Analysis**: AI analyzes spending patterns to provide personalized recommendations
+- **Subscription Detective**: Automatically identifies forgotten subscriptions and recurring charges
+- **Budget Optimization**: Intelligent suggestions for budget allocation and savings opportunities
+- **Trend Analysis**: Monthly spending trends and financial health insights
+
+### User Experience
+- **Modern UI/UX**: Built with React, TypeScript, and Tailwind CSS for a responsive design
+- **Real-time Updates**: Live data synchronization across all components
+- **Interactive Charts**: Beautiful data visualizations using Recharts
+- **Dark/Light Mode**: Adaptive theming for better user experience
+
+## 🛠 Tech Stack
+
+### Frontend
+- **React 18** with TypeScript
+- **Tailwind CSS** for styling
+- **Framer Motion** for animations
+- **Recharts** for data visualization
+- **Heroicons** for iconography
+- **Custom Hooks** for state management
+
+### Backend
+- **Node.js** with Express.js
+- **SQLite3** database with optimized schema
+- **JWT** authentication with bcrypt
+- **Express Validator** for input validation
+- **Helmet & CORS** for security
+- **Morgan** for logging
+
+### Development Tools
+- **Concurrently** for running multiple services
+- **Nodemon** for development
+- **PostCSS & Autoprefixer** for CSS processing
+- **ESLint** and TypeScript configuration
+
+## 📁 Project Structure
+
+```
+smart-financial-coach/
+├── frontend/                 # React TypeScript application
+│   ├── src/
+│   │   ├── components/      # Reusable UI components
+│   │   │   ├── BudgetManager.tsx
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── FinancialOverview.tsx
+│   │   │   ├── SpendingInsights.tsx
+│   │   │   ├── SubscriptionDetector.tsx
+│   │   │   ├── TransactionManager.tsx
+│   │   │   └── ui/          # Base UI components
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── services/        # API service layer
+│   │   └── pages/           # Page components
+│   ├── public/
+│   └── package.json
+├── backend/                 # Express.js API server
+│   ├── routes/             # API route handlers
+│   │   ├── budgetRoutes.js
+│   │   ├── transactionRoutes.js
+│   │   ├── subscriptionRoutes.js
+│   │   ├── analyticsRoutes.js
+│   │   └── userRoutes.js
+│   ├── database/           # Database setup and seed data
+│   │   ├── init.js
+│   │   ├── financial_coach.seed.db
+│   │   └── financial_coach.db (generated)
+│   ├── server.js
+│   └── package.json
+├── package.json            # Root package with scripts
+├── .gitignore
+└── README.md
+```
+
+### Database Setup
+
+The application uses SQLite with an automatic seeding system:
+- On first run, a working database is created from the seed file
+- Each clone gets an independent database with demo data
+- The seed database contains sample transactions, budgets, and a demo user
+
+## 📖 Usage Guide
+
+### Dashboard Navigation
+- **Overview**: Financial summary with income, expenses, and savings
+- **Transactions**: Add, edit, and categorize income/expenses
+- **Spending Insights**: AI-powered analysis and recommendations
+- **Budget Manager**: Create and track monthly budgets
+- **Subscriptions**: Manage active subscriptions and detect new ones
+
+### Managing Budgets
+1. Navigate to "Budget Manager"
+2. Click "Add New Budget"
+3. Enter category and allocated amount
+4. Track spending progress in real-time
+
+### Subscription Detection
+1. Go to "Subscriptions" tab
+2. Review AI-detected potential subscriptions
+3. Click "Confirm" to add to your subscription list
+4. Click "Reject" to mark as not a subscription
+
+### Transaction Management
+1. Access "Transactions" section
+2. Add income/expense entries
+3. Categorize transactions for better insights
+4. View transaction history and patterns
+
+## 🔧 Available Scripts
+
+### Root Level
+- `npm run dev` - Start both frontend and backend in development mode
+- `npm run install:all` - Install dependencies for all projects
+- `npm run server` - Start only the backend server
+- `npm run client` - Start only the frontend client
+
+### Backend
+- `npm start` - Start production server
+- `npm run dev` - Start with nodemon for development
+
+### Frontend
+- `npm start` - Start development server
+- `npm run build` - Build for production
+- `npm test` - Run tests
+
+## 🗄 Database Schema
+
+### Users Table
+- User authentication and profile information
+- Monthly income tracking
+- Account timestamps
+
+### Budgets Table
+- Monthly budget allocations by category
+- Spending tracking and color coding
+- Essential vs. discretionary categorization
+
+### Transactions Table
+- Income and expense entries
+- Vendor and category information
+- Date-based organization
+
+### Subscriptions Table
+- Active, trial, and forgotten subscriptions
+- Billing frequency and amounts
+- Next billing date tracking
+
+### Budget Spending Table
+- Daily spending entries linked to budgets
+- Detailed transaction descriptions
+
+## 🔒 Security Features
+
+- JWT-based authentication
+- Password hashing with bcrypt
+- CORS protection
+- Helmet security headers
+- Input validation on all endpoints
+- SQL injection prevention
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -am 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit a pull request
+
+## 📝 API Endpoints
 
 ### Authentication
 - `POST /api/users/register` - User registration
 - `POST /api/users/login` - User login
 - `PUT /api/users/change-password/:id` - Change password
 
-### User Management
-- `GET /api/users/profile/:id` - Get user profile
-- `PUT /api/users/profile/:id` - Update user profile
-- `GET /api/users/stats/:id` - Get user statistics
-
 ### Budget Management
-- `GET /api/budgets` - Get all budgets for a user
-- `GET /api/budgets/:id` - Get specific budget
+- `GET /api/budgets` - Get all budgets
 - `POST /api/budgets` - Create new budget
 - `PUT /api/budgets/:id` - Update budget
 - `DELETE /api/budgets/:id` - Delete budget
-- `GET /api/budgets/summary/:userId` - Get budget summary
 
 ### Transactions
 - `GET /api/transactions` - Get all transactions
-- `GET /api/transactions/:id` - Get specific transaction
-- `POST /api/transactions` - Create new transaction
+- `POST /api/transactions` - Create transaction
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
-- `GET /api/transactions/categories/summary` - Get spending by category
-- `GET /api/transactions/trends/monthly` - Get monthly spending trends
-
-
 
 ### Subscriptions
 - `GET /api/subscriptions` - Get all subscriptions
-- `GET /api/subscriptions/:id` - Get specific subscription
-- `POST /api/subscriptions` - Create new subscription
-- `PUT /api/subscriptions/:id` - Update subscription
-- `DELETE /api/subscriptions/:id` - Delete subscription
+- `POST /api/subscriptions` - Create subscription
+- `POST /api/subscriptions/mark-not-subscription` - Mark vendor as not a subscription
 - `PATCH /api/subscriptions/:id/status` - Update subscription status
-- `GET /api/subscriptions/summary/:userId` - Get subscription summary
-- `GET /api/subscriptions/renewals/upcoming` - Get upcoming renewals
 
-### Analytics & Insights
-- `GET /api/analytics/overview/:userId` - Get comprehensive financial overview
-- `GET /api/analytics/insights/:userId` - Get spending insights and AI recommendations
-- `GET /api/analytics/budget-analysis/:userId` - Get budget vs actual spending analysis
-- `GET /api/analytics/trends/:userId` - Get financial trends over time
-- `GET /api/analytics/savings-opportunities/:userId` - Get savings opportunities
+### Analytics
+- `GET /api/analytics/overview/:userId` - Financial overview
+- `GET /api/analytics/insights/:userId` - AI spending insights
+- `GET /api/analytics/trends/:userId` - Financial trends
 
-## Database Schema
+## 🛠 Development
 
-### Users Table
-- `id` - Primary key
-- `email` - User email (unique)
-- `password_hash` - Hashed password
-- `first_name` - User's first name
-- `last_name` - User's last name
-- `monthly_income` - Monthly income amount
-- `created_at` - Account creation timestamp
-- `updated_at` - Last update timestamp
+### Environment Setup
+- Frontend runs on port 3000
+- Backend runs on port 5000
+- Database file: `backend/database/financial_coach.db`
+- Seed database: `backend/database/financial_coach.seed.db`
 
-### Budgets Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `category` - Budget category name
-- `allocated` - Budgeted amount
-- `spent` - Amount spent so far
-- `color` - Color for UI display
-- `is_essential` - Whether this is an essential expense
-- `month_year` - Month and year (YYYY-MM format)
-- `created_at` - Creation timestamp
-- `updated_at` - Last update timestamp
+### Testing
+- Frontend: React Testing Library
+- Backend: Jest (configured)
+- Run tests with `npm test` in respective directories
 
-### Transactions Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `date` - Transaction date
-- `vendor` - Vendor/merchant name
-- `description` - Transaction description
-- `amount` - Transaction amount (positive for income, negative for expenses)
-- `category` - Transaction category
-- `type` - 'income' or 'expense'
-- `budget_id` - Optional foreign key to budgets
-- `created_at` - Creation timestamp
+## 🐛 Troubleshooting
 
+### Common Issues
+1. **Port conflicts**: Change ports in package.json scripts
+2. **Database issues**: Delete `financial_coach.db` to regenerate from seed
+3. **Module conflicts**: Run `npm run install:all` again
+4. **CORS errors**: Check frontend proxy configuration
 
+### Development Tips
+- Use browser dev tools for frontend debugging
+- Check backend console for API errors
+- Database file is regenerated from seed on first run
+- Hot reload is enabled for both frontend and backend
 
-### Subscriptions Table
-- `id` - Primary key
-- `user_id` - Foreign key to users
-- `name` - Subscription name
-- `amount` - Subscription cost
-- `frequency` - 'monthly' or 'yearly'
-- `next_billing` - Next billing date
-- `category` - Subscription category
-- `status` - 'active', 'trial', or 'forgotten'
-- `logo` - Optional logo URL
-- `created_at` - Creation timestamp
-- `updated_at` - Last update timestamp
+## 📄 License
 
-## API Usage Examples
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-### Creating a Budget
-```bash
-curl -X POST http://localhost:5000/api/budgets \
-  -H "Content-Type: application/json" \
-  -d '{
-    "category": "Groceries",
-    "allocated": 400,
-    "isEssential": true,
-    "monthYear": "2024-01"
-  }'
-```
+## 🙏 Acknowledgments
 
-### Adding a Transaction
-```bash
-curl -X POST http://localhost:5000/api/transactions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "date": "2024-01-15",
-    "vendor": "Whole Foods",
-    "description": "Weekly groceries",
-    "amount": -85.30,
-    "category": "Groceries",
-    "type": "expense"
-  }'
-```
+- Built with modern React and Node.js ecosystem
+- UI inspired by contemporary fintech applications
+- AI insights powered by transaction pattern analysis
+- Icons provided by Heroicons
+- Charts powered by Recharts
 
-### Getting Financial Insights
-```bash
-curl http://localhost:5000/api/analytics/insights/1?months=3
-```
+## 📞 Support
 
-### User Registration
-```bash
-curl -X POST http://localhost:5000/api/users/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "password123",
-    "firstName": "John",
-    "lastName": "Doe",
-    "monthlyIncome": 3500
-  }'
-```
+For support, feature requests, or bug reports:
+1. Check the troubleshooting section
+2. Review existing GitHub issues
+3. Create a new issue with detailed information
+4. Include steps to reproduce for bugs
 
-## Environment Variables
+---
 
-Create a `.env` file in the backend directory:
-
-```env
-PORT=5000
-NODE_ENV=development
-JWT_SECRET=your-super-secret-jwt-key
-FRONTEND_URL=http://localhost:3000
-```
-
-## Development
-
-### Running Tests
-```bash
-npm test
-```
-
-### Database Reset
-To reset the database and start fresh:
-1. Delete the `database/financial_coach.db` file
-2. Restart the server - it will automatically recreate the database with sample data
-
-### Sample Data
-The backend automatically creates a demo user with sample data when first initialized:
-- Email: `demo@example.com`
-- Password: `demo123`
-- Sample budgets and transactions
-
-## Security Features
-
-- **Password Hashing**: All passwords are hashed using bcrypt
-- **JWT Authentication**: Secure token-based authentication
-- **Input Validation**: All inputs are validated using express-validator
-- **SQL Injection Protection**: Parameterized queries prevent SQL injection
-- **CORS Configuration**: Configurable CORS settings for frontend integration
-- **Helmet Security**: Security headers and middleware
-
-## Error Handling
-
-The API returns consistent error responses:
-
-```json
-{
-  "error": "Error message",
-  "message": "Detailed error description (in development)"
-}
-```
-
-Common HTTP status codes:
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request (validation errors)
-- `401` - Unauthorized
-- `404` - Not Found
-- `409` - Conflict (duplicate data)
-- `500` - Internal Server Error
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
+**Happy Financial Planning! 💰📊**

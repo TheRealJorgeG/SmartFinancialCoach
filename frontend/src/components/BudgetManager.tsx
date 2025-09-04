@@ -16,7 +16,6 @@ import { Budget } from '../services/api';
 interface BudgetFormData {
   category: string;
   allocated: number;
-  isEssential: boolean;
 }
 
 export const BudgetManager: React.FC = () => {
@@ -41,8 +40,7 @@ export const BudgetManager: React.FC = () => {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [formData, setFormData] = useState<BudgetFormData>({
     category: '',
-    allocated: 0,
-    isEssential: false
+    allocated: 0
   });
 
   // Use actual monthly income and expenses for current month
@@ -94,7 +92,7 @@ export const BudgetManager: React.FC = () => {
         await updateBudget(editingBudget.id, {
           category: formData.category,
           allocated: formData.allocated,
-          is_essential: formData.isEssential
+          is_essential: false
         });
         setEditingBudget(null);
       } else {
@@ -102,12 +100,12 @@ export const BudgetManager: React.FC = () => {
           category: formData.category,
           allocated: formData.allocated,
           color: `#${Math.floor(Math.random()*16777215).toString(16)}`,
-          is_essential: formData.isEssential,
+          is_essential: false,
           month_year: new Date().toISOString().slice(0, 7) // YYYY-MM format
         });
       }
       
-      setFormData({ category: '', allocated: 0, isEssential: false });
+      setFormData({ category: '', allocated: 0 });
       setShowForm(false);
     } catch (error) {
       console.error('Failed to save budget:', error);
@@ -119,8 +117,7 @@ export const BudgetManager: React.FC = () => {
     setEditingBudget(budget);
     setFormData({
       category: budget.category,
-      allocated: budget.allocated,
-      isEssential: budget.is_essential
+      allocated: budget.allocated
     });
     setShowForm(true);
   };
@@ -464,18 +461,6 @@ export const BudgetManager: React.FC = () => {
                 />
               </div>
               
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isEssential"
-                  checked={formData.isEssential}
-                  onChange={(e) => setFormData({ ...formData, isEssential: e.target.checked })}
-                  className="rounded"
-                />
-                <label htmlFor="isEssential" className="text-sm">
-                  Essential expense (rent, utilities, groceries)
-                </label>
-              </div>
               
               <div className="flex space-x-3 pt-4">
                 <Button type="submit" className="flex-1">
@@ -486,7 +471,7 @@ export const BudgetManager: React.FC = () => {
                   onClick={() => {
                     setShowForm(false);
                     setEditingBudget(null);
-                    setFormData({ category: '', allocated: 0, isEssential: false });
+                    setFormData({ category: '', allocated: 0 });
                   }}
                   className="flex-1 bg-gray-500 hover:bg-gray-600"
                 >
